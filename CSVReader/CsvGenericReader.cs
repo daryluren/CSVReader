@@ -8,57 +8,6 @@ using System.Threading.Tasks;
 
 namespace CsvReader
 {
-    public class CsvReader : CsvReader<DataRow, DataTable>
-    {
-        public CsvReader(Stream Stream, bool IncludesHeader, char Delimeter)
-            : base(Stream, IncludesHeader, Delimeter, new CsvToDataRowMapper()) { }
-        public CsvReader(Stream Stream)
-            : this(Stream, true, ',') { }
-        public CsvReader(Stream Stream, bool IncludesHeader)
-            : this(Stream, IncludesHeader, ',') { }
-
-        private class CsvToDataRowMapper : CsvMapper
-        {
-            private DataTable resultTable;
-
-            public override DataTable CurrentPage => resultTable ?? (resultTable = MakeTable());
-
-            public override DataRow MakeRow(string[] values)
-            {
-                if (resultTable.Columns.Count == 0)
-                {
-                    int i = 0;
-                    foreach (var cell in values)
-                    {
-                        resultTable.Columns.Add("Column" + (i++).ToString());
-                    }
-                }
-
-                var r = resultTable.NewRow();
-                r.ItemArray = values;
-                return r;
-            }
-
-            public override void AddRowToPage(DataRow current) => resultTable.Rows.Add(current);
-
-            public override int CurrentPageRowCount() => resultTable.Rows.Count;
-
-            public override void NextPage()
-            {
-                resultTable = resultTable.Clone();
-            }
-
-            private DataTable MakeTable()
-            {
-                var result = new DataTable();
-                if (ColumnNames != null)
-                    foreach (var name in ColumnNames)
-                        result.Columns.Add(name);
-                return result;
-            }
-
-        }
-    }
 
     public class CsvReader<TRow, TPage> : IDisposable
         where TRow : class
@@ -69,30 +18,27 @@ namespace CsvReader
         private IEnumerator<TRow> DataRowEnumerator { get; set; }
         private CsvMapper Mapper { get; set; }
 
-        public CsvReader(Stream Stream, bool IncludesHeader, char Delimeter, CsvMapper Mapper)
+        public CsvReader(Stream stream, bool isHeaderIncluded, char delimeter, CsvMapper mapper)
         {
-            this.Mapper = Mapper;
-            LineEnumerator = RowReader(Stream, Delimeter).GetEnumerator();
-            if (IncludesHeader)
+            this.Mapper = mapper;
+            LineEnumerator = RowReader(stream, delimeter).GetEnumerator();
+            if (isHeaderIncluded)
             {
                 LineEnumerator.MoveNext();
-                Mapper.ColumnNames = LineEnumerator.Current;
+                mapper.ColumnNames = LineEnumerator.Current;
             }
         }
 
-        public TPage ToPagedData()
-        {
-            return ToPagedData(int.MaxValue)?.First();
-        }
+        public TPage ToPagedData() => ToPagedData(int.MaxValue)?.First();
 
-        public IEnumerable<TPage> ToPagedData(int PageSize)
+        public IEnumerable<TPage> ToPagedData(int pageSize)
         {
             DataRowEnumerator = Rows().GetEnumerator();
 
             while (DataRowEnumerator.MoveNext())
             {
                 Mapper.AddRowToPage(DataRowEnumerator.Current);
-                if (Mapper.CurrentPageRowCount() >= PageSize)
+                if (Mapper.CurrentPageRowCount() >= pageSize)
                 {
                     yield return Mapper.CurrentPage;
                     Mapper.NextPage();
@@ -109,8 +55,7 @@ namespace CsvReader
         {
             while (LineEnumerator.MoveNext())
             {
-                var r = Mapper.MakeRow(LineEnumerator.Current);
-                yield return r;
+                yield return Mapper.MakeRow(LineEnumerator.Current);
             }
         }
 

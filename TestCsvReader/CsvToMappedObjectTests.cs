@@ -60,11 +60,13 @@ namespace TestCsvReader
 
                 foreach (var allRecs in csvr.ToPagedData(100))
                 {
-                    var rec = allRecs[0];
+                    foreach (var rec in allRecs)
+                    {
+                        total += rec.Id;
+                    }
 
-                    total += rec.Id;
-
-                    Assert.IsTrue(rec.Due == null || rec.Due > DateTime.Parse("2017-01-01"));
+                    var first = allRecs[0];
+                    Assert.IsTrue(first.Due == null || first.Due > DateTime.Parse("2017-01-01"));
                 }
 
                 Assert.IsTrue(total == 6);

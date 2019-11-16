@@ -41,7 +41,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="csv2.cs" />
+    <Compile Include="CsvToDatatable.cs" />
+    <Compile Include="CsvGenericReader.cs" />
     <Compile Include="CsvToObjectMapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

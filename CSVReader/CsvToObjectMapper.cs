@@ -12,14 +12,14 @@ namespace CsvReader
     public class CsvReader<T> : CsvReader<T, List<T>>
         where T : class, new()
     {
-        public CsvReader(Stream Stream, bool IncludesHeader, char Delimeter)
-            : base(Stream, IncludesHeader, Delimeter, new CsvToClassMapper())
+        public CsvReader(Stream stream, bool isHeaderIncluded, char delimeter)
+            : base(stream, isHeaderIncluded, delimeter, new CsvToClassMapper())
         { }
         public CsvReader(Stream stream)
             : this(stream, true, ',')
         { }
-        public CsvReader(Stream Stream, bool IncludesHeader)
-            : this(Stream, IncludesHeader, ',')
+        public CsvReader(Stream stream, bool isHeaderIncluded)
+            : this(stream, isHeaderIncluded, ',')
         { }
 
         private class CsvToClassMapper : CsvMapper
@@ -67,6 +67,8 @@ namespace CsvReader
                 return result;
             }
 
+            public override void NextPage() => page = null;
+
             //https://codereview.stackexchange.com/questions/102289/setting-the-value-of-properties-via-reflection
             public static object Parse(Type type, string str)
             {
@@ -104,7 +106,6 @@ namespace CsvReader
 
             }
 
-            public override void NextPage() { page = null; }
         }
     }
 
