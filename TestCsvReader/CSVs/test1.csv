@@ -1,0 +1,5 @@
+﻿id,word,date,decimal,x,y,z
+1,one,2018-03-02,3.4,blah,stuff,things
+2,two,,2.2,"comma,here","new line
+here","double""quote"
+3,three,2019-10-31,3.14159,I,love,cake
