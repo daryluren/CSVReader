@@ -36,19 +36,19 @@ namespace CsvReader
             {
                 T result = new T();
 
-                var ColumnNamesList = new List<string>(ColumnNames);
-                var ColumnsRemaining = new List<string>(ColumnNames);
+                var columnNamesList = new List<string>(ColumnNames);
+                var columnsRemaining = new List<string>(ColumnNames);
 
                 foreach (var prop in typeof(T).GetProperties().Where(p => p.GetCustomAttributes(typeof(CsvMappingColumnAttribute), true).Any()))
                 {
                     var att = prop.GetCustomAttributes(typeof(CsvMappingColumnAttribute), true).First() as CsvMappingColumnAttribute;
-                    var index = ColumnNamesList.IndexOf(att.ColumnName);
+                    var index = columnNamesList.IndexOf(att.ColumnName);
                     var val = Parse(prop.PropertyType, values[index]);
                     prop.SetValue(result, val);
-                    ColumnsRemaining.Remove(att.ColumnName);
+                    columnsRemaining.Remove(att.ColumnName);
                 }
 
-                if (ColumnsRemaining.Any())
+                if (columnsRemaining.Any())
                     foreach (var prop in typeof(T).GetProperties().Where(p => p.GetCustomAttributes(typeof(CsvMappingColumnsRemainingAttribute), true).Any()))
                     {
                         if (prop.PropertyType != typeof(Dictionary<string, string>))
@@ -57,21 +57,21 @@ namespace CsvReader
                         var dict = new Dictionary<string, string>();
                         prop.SetValue(result, dict);
 
-                        foreach (var col in ColumnsRemaining)
-                            dict[col] = values[ColumnNamesList.IndexOf(col)];
+                        foreach (var col in columnsRemaining)
+                            dict[col] = values[columnNamesList.IndexOf(col)];
 
                         break;
                     }
 
-                (result as ICsvMappable)?.AfterMapping();
+                (result as ICsvMappable)?.AfterCsvMapping();
                 return result;
             }
 
             public override void NextPage() => page = null;
 
-            //https://codereview.stackexchange.com/questions/102289/setting-the-value-of-properties-via-reflection
-            public static object Parse(Type type, string str)
+            private static object Parse(Type type, string str)
             {
+                //https://codereview.stackexchange.com/questions/102289/setting-the-value-of-properties-via-reflection
                 bool IsNullableType()
                 {
                     return type.IsGenericType && type.GetGenericTypeDefinition().Equals(typeof(Nullable<>));
@@ -127,7 +127,7 @@ namespace CsvReader
 
     public interface ICsvMappable
     {
-        void AfterMapping();
+        void AfterCsvMapping();
     }
 
 }
