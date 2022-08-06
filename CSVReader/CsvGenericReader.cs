@@ -68,75 +68,73 @@ namespace CsvReader
         /// <returns></returns>
         private IEnumerable<string[]> RowReader(Stream stream, char delimiter)
         {
-            using (var reader = new StreamReader(stream))
+            using var reader = new StreamReader(stream);
+            var cells = new List<StringBuilder>();
+            var currentCell = new StringBuilder();
+            cells.Add(currentCell);
+
+            while (true)
             {
-                var cells = new List<StringBuilder>();
-                var currentCell = new StringBuilder();
-                cells.Add(currentCell);
-
-                while (true)
+                int i = reader.Read();
+                if (i == -1)
                 {
-                    int i = reader.Read();
-                    if (i == -1)
+                    if (cells.Count > 1 || !string.IsNullOrEmpty(cells[0].ToString()))
                     {
-                        if (cells.Count > 1 || !string.IsNullOrEmpty(cells[0].ToString()))
-                        {
-                            yield return (from cell in cells select cell.ToString()).ToArray();
-                        }
-                        break;
+                        yield return (from cell in cells select cell.ToString()).ToArray();
                     }
-                    else
+                    break;
+                }
+                else
+                {
+                    var c = (char)i;
+                    if (c == '\r')
                     {
-                        var c = (char)i;
-                        if (c == '\r')
+                        // ignore
+                    }
+                    else if (c == '\n')
+                    {
+                        yield return (from cell in cells select cell.ToString()).ToArray();
+                        cells = new List<StringBuilder>();
+                        currentCell = new StringBuilder();
+                        cells.Add(currentCell);
+                    }
+                    else if (c == delimiter)
+                    {
+                        currentCell = new StringBuilder();
+                        cells.Add(currentCell);
+                    }
+                    else if (c == '"' && string.IsNullOrEmpty(currentCell.ToString()))
+                    {
+                        // start quoted string
+                        while (true)
                         {
-                            // ignore
-                        }
-                        else if (c == '\n')
-                        {
-                            yield return (from cell in cells select cell.ToString()).ToArray();
-                            cells = new List<StringBuilder>();
-                            currentCell = new StringBuilder();
-                            cells.Add(currentCell);
-                        }
-                        else if (c == delimiter)
-                        {
-                            currentCell = new StringBuilder();
-                            cells.Add(currentCell);
-                        }
-                        else if (c == '"' && string.IsNullOrEmpty(currentCell.ToString()))
-                        {
-                            // start quoted string
-                            while (true)
-                            {
-                                var j = (char)reader.Read();
+                            var j = (char)reader.Read();
 
-                                if (j == '"')
+                            if (j == '"')
+                            {
+                                var peek = reader.Peek();
+                                if (peek != -1 && (char)peek == '"')
                                 {
-                                    var peek = reader.Peek();
-                                    if (peek != -1 && (char)peek == '"')
-                                    {
-                                        // it's a quoted quote like this: "first part""second part"
-                                        reader.Read();
-                                        currentCell.Append('"');
-                                    }
-                                    else
-                                    {
-                                        // it's the end of a quoted string
-                                        break;
-                                    }
+                                    // it's a quoted quote like this: "first part""second part"
+                                    reader.Read();
+                                    currentCell.Append('"');
                                 }
                                 else
                                 {
-                                    // contents of the quoted string
-                                    currentCell.Append(j);
+                                    // it's the end of a quoted string
+                                    break;
                                 }
                             }
+                            else
+                            {
+                                // contents of the quoted string
+                                currentCell.Append(j);
+                            }
                         }
-                        else
-                        {
-                            currentCell.Append(c);
-                        }
+                    }
+                    else
+                    {
+                        currentCell.Append(c);
                     }
                 }
             }
